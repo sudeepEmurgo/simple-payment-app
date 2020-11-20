@@ -1,0 +1,88 @@
+Title: Supporting Rich Queries
+
+# Create your chaincode directory for Rich Queries and move into it
+
+# Execute the command to init a new go module
+$ go mod init simple-payment-application-chaincode
+
+# We are going to use the contractapi for golang
+$ go get -u github.com/hyperledger/fabric-contract-api-go
+
+# Copy the old contract and build over it
+
+
+
+go mod tidy
+
+go mod vendor
+
+go build
+
+# Go to the test-network folder
+	cd <path>
+
+# Bring the Network Down
+	./network.sh down
+
+# Bring the network Up with couchdb and createChannel
+	./network.sh up createChannel -s couchdb
+
+# Check docker containers
+	docker ps -a
+
+# Make sure you have done the relavant changes to deployCC.sh script to pick your chaincode
+
+# Deploy Chaincode
+	./network.sh deployCC -ccn spa-richquery
+
+# Prepare to use command line arguments
+	export PATH=${PWD}/../bin:$PATH
+	export FABRIC_CFG_PATH=$PWD/../config/
+
+# Set the context for Org1
+	source ./scripts/setChannelContext.sh 1
+
+# Initialize the chaincode
+	peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n spa-richquery --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"InitLedger","Args":[]}'
+	
+# Register the Users
+	peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n spa-richquery --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"RegisterUserAccount","Args":["Calvin","DreamLand"]}'	
+
+# Query the Balance after initialize
+	peer chaincode query -C mychannel -n spa-richquery -c '{"Args":["Balance"]}'
+	
+# Switch the context for Org2
+	source ./scripts/setChannelContext.sh 2
+
+# Register the Users
+	peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n spa-richquery --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"RegisterUserAccount","Args":["Hobbes","ToyLand"]}'	
+
+# Query the Balance after initialize
+	peer chaincode query -C mychannel -n spa-richquery -c '{"Args":["Balance"]}'
+
+# Peer invoke the transfer function
+	peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n spa-richquery --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"Transfer","Args":["<User1>", "50"]}'
+
+# Get Account Statement
+	peer chaincode query -C mychannel -n spa-richquery -c '{"Args":["GetAccountStatement"]}'
+
+# Get All User Balances
+	peer chaincode query -C mychannel -n spa-richquery -c '{"Args":["GetAllUserBalanceForOrg","DreamLand"]}'
+
+# Do as many experiments as you want
+
+# Using User Account for creating another account in DreamLand
+export CORE_PEER_LOCALMSPID="Org1MSP"
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp
+export CORE_PEER_ADDRESS=localhost:7051
+
+	peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n spa-richquery --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"RegisterUserAccount","Args":["Susie","DreamLand"]}'	
+
+# Bring Down the Network, when you are done playing around
+	./network.sh down
+
+
+# url to access couchdb
+
+http://localhost:5984/_utils
